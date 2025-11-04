@@ -7,27 +7,51 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import uuid
+import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'data.db')
 
-# uploads folder for multipart file uploads — store at project root '/uploads' so frontend and tests
-# can reference files consistently (one level above backend/)
+# Determine DB location. Prefer an explicit BACKEND_DB_URI environment variable.
+# When running in serverless environments (like Vercel) the filesystem is largely
+# read-only — use a writable location such as /tmp or an external DB.
+BACKEND_DB_URI = os.environ.get('BACKEND_DB_URI')
+if BACKEND_DB_URI:
+    SQLALCHEMY_DATABASE_URI = BACKEND_DB_URI
+else:
+    # default to a local sqlite file during local development
+    DB_PATH = os.path.join(BASE_DIR, 'data.db')
+    # If running on Vercel (or other serverless), prefer a tmp-mounted sqlite file
+    if os.environ.get('VERCEL') or os.environ.get('NOW_REGION'):
+        DB_PATH = '/tmp/data.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///' + DB_PATH
+
+# uploads folder for multipart file uploads — allow override via UPLOAD_FOLDER env
+# In serverless, fall back to /tmp/uploads which is writable during invocation.
 PROJECT_ROOT = os.path.normpath(os.path.join(BASE_DIR, '..'))
-UPLOAD_FOLDER = os.path.join(PROJECT_ROOT, 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+DEFAULT_UPLOAD = os.path.join(PROJECT_ROOT, 'uploads')
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or (('/tmp/uploads' if (os.environ.get('VERCEL') or os.environ.get('NOW_REGION')) else DEFAULT_UPLOAD))
 
-    # Serve the static frontend (project root) so frontend and API share origin for easy local testing
+# Try to create the upload folder at import time; fall back to /tmp if needed.
+try:
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+except Exception:
+    try:
+        UPLOAD_FOLDER = '/tmp/uploads'
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    except Exception:
+        # As a last resort use a local uploads directory in cwd
+        UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
+        os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Serve the static frontend (project root) so frontend and API share origin for easy local testing
 static_root = os.path.normpath(os.path.join(BASE_DIR, '..'))
 # serve frontend files from project root so front-end can be loaded from same origin
 app = Flask(__name__, static_folder=static_root, static_url_path='')
 app.secret_key = os.environ.get('HAF_SECRET') or 'dev-secret-for-prototype'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH
+app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 CORS(app)
 db = SQLAlchemy(app)
-
-
 class Opportunity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
@@ -144,55 +168,77 @@ class Application(db.Model):
             'created_at': self.created_at.isoformat()
         }
 
+def _ensure_schema(db_instance):
+    """Apply lightweight schema updates (ALTER TABLE) to handle simple schema drift.
+
+    This is intentionally conservative: it checks PRAGMA table_info and adds
+    missing columns where SQLite permits ADD COLUMN.
+    """
+    try:
+        # ensure opportunity table has user_id and attachment columns
+        res = db_instance.session.execute(text("PRAGMA table_info(opportunity);"))
+        cols = [r[1] for r in res.fetchall()]
+        if 'user_id' not in cols:
+            db_instance.session.execute(text('ALTER TABLE opportunity ADD COLUMN user_id INTEGER'))
+            db_instance.session.commit()
+        if 'attachment_original' not in cols:
+            db_instance.session.execute(text("ALTER TABLE opportunity ADD COLUMN attachment_original TEXT"))
+            db_instance.session.commit()
+        if 'attachment_stored' not in cols:
+            db_instance.session.execute(text("ALTER TABLE opportunity ADD COLUMN attachment_stored TEXT"))
+            db_instance.session.commit()
+
+        # user table
+        res2 = db_instance.session.execute(text("PRAGMA table_info(user);"))
+        ucols = [r[1] for r in res2.fetchall()]
+        if 'is_verified' not in ucols:
+            db_instance.session.execute(text("ALTER TABLE user ADD COLUMN is_verified BOOLEAN DEFAULT 0"))
+            db_instance.session.commit()
+        if 'verification_token' not in ucols:
+            db_instance.session.execute(text("ALTER TABLE user ADD COLUMN verification_token TEXT"))
+            db_instance.session.commit()
+        if 'verification_sent_at' not in ucols:
+            db_instance.session.execute(text("ALTER TABLE user ADD COLUMN verification_sent_at DATETIME"))
+            db_instance.session.commit()
+        if 'role' not in ucols:
+            db_instance.session.execute(text("ALTER TABLE user ADD COLUMN role TEXT DEFAULT 'user'"))
+            db_instance.session.commit()
+
+        # youth table
+        res3 = db_instance.session.execute(text("PRAGMA table_info(youth);"))
+        ycols = [r[1] for r in res3.fetchall()]
+        if 'status' not in ycols:
+            db_instance.session.execute(text("ALTER TABLE youth ADD COLUMN status TEXT DEFAULT 'draft'"))
+            db_instance.session.commit()
+        if 'submitted_at' not in ycols:
+            db_instance.session.execute(text("ALTER TABLE youth ADD COLUMN submitted_at DATETIME"))
+            db_instance.session.commit()
+        if 'verified_at' not in ycols:
+            db_instance.session.execute(text("ALTER TABLE youth ADD COLUMN verified_at DATETIME"))
+            db_instance.session.commit()
+    except Exception:
+        # don't raise on schema update failure; host-specific environments may prevent ALTER
+        # and the app can still function if tables/columns are compatible.
+        pass
+
 
 def seed_data():
-    # Run seeding inside an application context
+    """Lightweight seeding for local development. Creates tables and a demo user.
+
+    This is only invoked when running the module directly (not on import by a WSGI host).
+    """
     with app.app_context():
         db.create_all()
-        # ensure opportunity table has user_id column in case of schema drift
+        _ensure_schema(db)
         try:
-            # check pragma table_info
-            res = db.session.execute(text("PRAGMA table_info(opportunity);"))
-            cols = [r[1] for r in res.fetchall()]
-            if 'user_id' not in cols:
-                # SQLite supports ADD COLUMN
-                db.session.execute(text('ALTER TABLE opportunity ADD COLUMN user_id INTEGER'))
-                db.session.commit()
-            # add attachment columns if missing
-            if 'attachment_original' not in cols:
-                db.session.execute(text("ALTER TABLE opportunity ADD COLUMN attachment_original TEXT"))
-                db.session.commit()
-            if 'attachment_stored' not in cols:
-                db.session.execute(text("ALTER TABLE opportunity ADD COLUMN attachment_stored TEXT"))
-                db.session.commit()
-            # ensure user table has verification columns
-            res2 = db.session.execute(text("PRAGMA table_info(user);"))
-            ucols = [r[1] for r in res2.fetchall()]
-            if 'is_verified' not in ucols:
-                db.session.execute(text("ALTER TABLE user ADD COLUMN is_verified BOOLEAN DEFAULT 0"))
-                db.session.commit()
-            if 'verification_token' not in ucols:
-                db.session.execute(text("ALTER TABLE user ADD COLUMN verification_token TEXT"))
-                db.session.commit()
-            if 'verification_sent_at' not in ucols:
-                db.session.execute(text("ALTER TABLE user ADD COLUMN verification_sent_at DATETIME"))
-                db.session.commit()
-            if 'role' not in ucols:
-                db.session.execute(text("ALTER TABLE user ADD COLUMN role TEXT DEFAULT 'user'"))
-                db.session.commit()
-            # ensure youth table has verification workflow columns
-            res3 = db.session.execute(text("PRAGMA table_info(youth);"))
-            ycols = [r[1] for r in res3.fetchall()]
-            if 'status' not in ycols:
-                db.session.execute(text("ALTER TABLE youth ADD COLUMN status TEXT DEFAULT 'draft'"))
-                db.session.commit()
-            if 'submitted_at' not in ycols:
-                db.session.execute(text("ALTER TABLE youth ADD COLUMN submitted_at DATETIME"))
-                db.session.commit()
-            if 'verified_at' not in ycols:
-                db.session.execute(text("ALTER TABLE youth ADD COLUMN verified_at DATETIME"))
+            if not User.query.first():
+                demo = User(email='demo@example.com', name='Demo User')
+                demo.set_password('demo')
+                demo.is_verified = True
+                db.session.add(demo)
                 db.session.commit()
         except Exception:
+            # ignore seed errors in constrained hosting environments
             pass
         # if already seeded, skip
         try:
