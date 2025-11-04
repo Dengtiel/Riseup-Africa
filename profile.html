@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Your Profile – Riseup Africa</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="assets/css/styles.css" rel="stylesheet">
+  </head>
+  <body class="bg-light text-dark">
+    <header class="site-header py-4">
+      <div class="container d-flex align-items-center justify-content-between">
+  <h1 class="h5 mb-0">Riseup Africa · Your Profile</h1>
+      </div>
+    </header>
+    <main class="container my-4">
+      <div id="profileZone">
+        <p class="text-muted">Loading your profile…</p>
+      </div>
+    </main>
+  <footer class="text-center text-muted py-3"><div class="container small">Riseup Africa</div></footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    async function loadProfile(){
+      try{
+        var res = await fetch('/api/me');
+        if(!res.ok) throw new Error('no');
+        var j = await res.json();
+        var el = document.getElementById('profileZone');
+        if(!j.authenticated){ el.innerHTML = '<div class="alert alert-warning">Not signed in. <a href="index.html">Sign in</a></div>'; return; }
+        var html = '<h3>Welcome, '+(j.name || j.email)+'</h3>';
+        if(j.profiles && j.profiles.length){
+          j.profiles.forEach(function(p){
+            html += '<div class="card mb-3"><div class="card-body">';
+            html += '<h5>'+p.name+'</h5>';
+            html += '<p class="small text-muted">Category: '+(p.category||'')+' · Country: '+(p.country||'')+'</p>';
+            if(p.documents && p.documents.length){
+              html += '<h6>Uploads</h6><ul>';
+              p.documents.forEach(function(d){ html += '<li><a href="'+d.url+'" target="_blank">'+d.original_filename+'</a> <small class="text-muted">('+new Date(d.uploaded_at).toLocaleString()+')</small></li>' });
+              html += '</ul>';
+            } else { html += '<p class="small text-muted">No uploads yet.</p>'; }
+            html += '</div></div>';
+          });
+        } else {
+          html += '<p class="small text-muted">No profile found. <a href="profile_upload.html">Create one</a></p>';
+        }
+        el.innerHTML = html;
+      }catch(e){ console.error(e); document.getElementById('profileZone').innerHTML = '<p class="text-danger">Error loading profile</p>'; }
+    }
+    loadProfile();
+    </script>
+  </body>
+</html>

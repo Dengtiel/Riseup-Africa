@@ -1,0 +1,181 @@
+/* Shared styles and animations for Riseup Africa prototype */
+:root{
+  --brand:#0d6efd;
+  --brand-2:#6610f2;
+  --bg:#f6f8fb;
+  --muted:#6b7280;
+  --card:#ffffff;
+  --radius:12px;
+}
+
+/* Navbar link and login button theming */
+.navbar .nav-link{color:var(--brand);font-weight:600}
+.navbar .nav-link:hover{color:var(--brand-2);text-decoration:none}
+.navbar .nav-link.active{color:var(--brand-2)}
+
+/* Header controls (login buttons) - white background with brand text */
+#loginBtnHeader,#loginBtn,#loginBtnMobile{background:#ffffff;color:var(--brand);border:1px solid rgba(13,110,253,0.12);box-shadow:none}
+#loginBtnHeader:hover,#loginBtn:hover,#loginBtnMobile:hover{background:#f8fbff;color:var(--brand-2);border-color:rgba(102,16,242,0.08)}
+
+/* Ensure mobile collapsed links also show brand color */
+.navbar-collapse .nav-link{color:var(--brand)}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+html,body{height:100%}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:#0f1724;line-height:1.45}
+
+/* Header gradient */
+.site-header{background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff}
+.site-header h1{font-weight:600}
+
+.card{border-radius:var(--radius);transition:transform .28s ease,box-shadow .28s ease;border:0}
+.card:hover{transform:translateY(-6px);box-shadow:0 10px 30px rgba(15,23,36,.08)}
+
+.navbar-brand{font-weight:700;color:#fff}
+.navbar{background:transparent}
+
+.btn-primary{background:linear-gradient(90deg,var(--brand),var(--brand-2));border:0;box-shadow:0 6px 18px rgba(13,110,253,.12);transition:transform .18s ease,box-shadow .18s ease}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(13,110,253,.16)}
+.btn-outline-primary{border-color:var(--brand);color:var(--brand)}
+
+.badge {transition:transform .18s ease}
+.badge:active{transform:scale(.96)}
+
+/* Table hover */
+.table-hover tbody tr:hover{background:linear-gradient(90deg,rgba(13,110,253,.03),rgba(102,16,242,.02))}
+
+/* subtle skeleton/loader for actions */
+.spinner-inline{width:18px;height:18px;border-radius:50%;display:inline-block;border:2px solid rgba(255,255,255,.25);border-top-color:rgba(255,255,255,.75);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Accessibility: focus ring */
+a:focus,button:focus,input:focus,select:focus,textarea:focus{outline:3px solid rgba(13,110,253,.12);outline-offset:2px}
+
+/* Utility for limited-width container used in prototype */
+@media (min-width: 1200px){
+  .container{max-width:1100px}
+}
+
+/* Small helpers */
+.muted{color:var(--muted)}
+.hero-wave{opacity:.9}
+
+/* Top navbar search and avatar */
+.nav-search{max-width:1100px;flex:1 1 1100px}
+.nav-search-header{max-width:1100px;flex:1 1 1100px}
+.nav-search .input-group,.nav-search-header .input-group{height:48px}
+.nav-search .form-control,.nav-search-header .form-control{font-size:1rem;padding:.5rem .85rem;height:48px;border-radius:6px 0 0 6px}
+.nav-search .btn,.nav-search-header .btn{padding:.45rem .8rem;height:48px;border-radius:0 6px 6px 0}
+.nav-search .form-control:focus{box-shadow:none}
+.nav-avatar{width:88px;height:88px;border-radius:50%;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+
+/* Make the navbar search stretch to fill available space on wider screens */
+@media (min-width: 768px){
+  /* tighten spacing so the search can sit closer to the logo */
+  .navbar > .container{display:flex;align-items:center;gap:.35rem}
+  /* medium overlap: pull the search left by 16px so it slightly overlaps toward the logo */
+  .nav-search{max-width:none;flex:1 1 auto;width:100%;margin-left:-16px}
+  .nav-search .input-group{max-width:100%}
+  /* keep controls aligned to the right */
+  .ms-auto.d-flex.align-items-center{margin-left:.75rem}
+}
+
+/* Animated expansion on focus */
+.nav-search{transition:all .26s ease}
+.nav-search .form-control{transition:width .26s ease, box-shadow .18s ease}
+.nav-search.expanded{max-width:1400px}
+
+/* Autocomplete / typeahead dropdown */
+.nav-search .typeahead{
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  right:0;
+  z-index:1050;
+  background:var(--card);
+  border-radius:8px;
+  box-shadow:0 10px 30px rgba(15,23,36,.08);
+  max-height:280px;overflow:auto;padding:6px 0;
+}
+.nav-search .typeahead .item{padding:.5rem .75rem;cursor:pointer}
+.nav-search .typeahead .item:hover,.nav-search .typeahead .item.active{background:linear-gradient(90deg,rgba(13,110,253,.04),rgba(102,16,242,.03))}
+.nav-search{position:relative}
+
+/* Header-specific control sizing and spacing */
+.header-controls{gap:1rem;align-items:center}
+.header-controls .nav-search-header{margin-right:.5rem}
+.header-controls .nav-search-header .form-control{height:56px;padding:.6rem .95rem}
+.header-controls .nav-avatar{width:112px;height:112px;font-size:1.25rem;border-radius:50%;align-items:center;justify-content:center}
+@media (max-width: 992px){
+  .header-controls .nav-avatar{width:72px;height:72px;font-size:1rem}
+  .header-controls .nav-search-header{display:none}
+}
+
+/* Dark mode */
+.dark-mode{background:#071023;color:#e6eef8}
+.dark-mode .card{background:#071a2b;box-shadow:0 8px 30px rgba(2,6,23,.6)}
+.dark-mode .site-header{background:linear-gradient(90deg,#04263a,#18314a)}
+.dark-mode .btn-primary{box-shadow:0 6px 18px rgba(13,110,253,.08)}
+
+/* Login modal tweaks */
+.modal-header{border-bottom:0}
+.modal-content{border-radius:12px}
+
+/* Small style guide components */
+.sg-palette{display:flex;gap:.5rem;align-items:center}
+.sg-palette .swatch{width:36px;height:36px;border-radius:8px}
+
+/* Brand logo (SVG/PNG) */
+.brand-logo{height:88px;width:88px;object-fit:contain;border-radius:8px;display:inline-block}
+.navbar-brand .brand-name{font-weight:700;color:var(--card);margin-left:.5rem}
+.brand-logo--tint{filter: hue-rotate(180deg) saturate(140%) brightness(95%)}
+
+/* Responsive logo sizing */
+@media (max-width: 576px){
+  .brand-logo{height:52px;width:52px}
+}
+
+/* Larger variant for prominent branding */
+.brand-logo--large{height:144px;width:144px}
+@media (max-width: 576px){
+  .brand-logo--large{height:104px;width:104px}
+}
+
+/* Slightly larger avatar to balance the bigger logo */
+.nav-avatar{width:80px;height:80px;border-radius:50%;background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+@media (max-width: 576px){
+  .nav-avatar{width:64px;height:64px;font-size:1rem}
+}
+
+/* Hide avatar globally (UI chooses to use login/profile button instead) */
+.nav-avatar{display:none !important}
+
+/* Feature cards (home landing) */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.25rem}
+.feature-card{position:relative;overflow:hidden;padding:1.5rem;border-radius:18px;min-height:220px;display:flex;flex-direction:column;justify-content:space-between;background:linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,255,255,0.92));box-shadow:0 12px 40px rgba(2,6,23,.06);border:1px solid rgba(15,23,36,.03);transition:transform .28s cubic-bezier(.16,.8,.24,1),box-shadow .28s ease}
+.feature-card:hover{transform:translateY(-8px);box-shadow:0 22px 60px rgba(2,6,23,.12)}
+.feature-card .icon{width:72px;height:72px;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:1.75rem;color:#fff;background:linear-gradient(90deg,var(--brand),var(--brand-2));box-shadow:0 8px 20px rgba(13,110,253,.12)}
+.feature-card .title{font-size:1.25rem;font-weight:700;margin-bottom:.35rem}
+.feature-card .desc{color:var(--muted);line-height:1.5;margin-bottom:.9rem}
+.feature-card .cta{display:inline-flex;align-items:center;gap:.6rem;padding:.6rem .9rem;border-radius:10px;font-weight:600}
+.feature-card .cta .bi{font-size:1.05rem}
+.feature-badges{display:flex;gap:.5rem;align-items:center}
+.feature-badges .badge{background:rgba(15,23,36,.06);color:#0f1724;border-radius:999px;padding:.35rem .6rem;font-weight:600;display:inline-flex;align-items:center;gap:.45rem}
+.feature-badges .badge .bi{font-size:1rem;opacity:.95}
+
+@media (max-width: 991px){
+  .features-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width: 575px){
+  .features-grid{grid-template-columns:1fr}
+  .feature-card{min-height:170px;padding:1rem}
+  .feature-card .icon{width:56px;height:56px;font-size:1.2rem}
+}
+
+/* Small modal for quick register */
+.modal-sm .modal-dialog{max-width:420px}
+.register-inputs .form-control{border-radius:10px}
+
+
+

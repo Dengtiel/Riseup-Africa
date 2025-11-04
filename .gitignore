@@ -1,0 +1,23 @@
+#.venv and Python cache
+.venv/
+__pycache__/
+*.pyc
+
+# Editor/project settings
+.vscode/
+*.log
+
+# SQLite database and uploads/logs
+backend/data.db
+uploads/
+logs/
+
+# Test artifacts
+.pytest_cache/
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# IDE files
+.idea/

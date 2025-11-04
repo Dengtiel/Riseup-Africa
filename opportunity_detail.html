@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Opportunity Detail – Riseup Africa</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+			<link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+			<link href="assets/css/styles.css" rel="stylesheet">
+	</head>
+	<body class="bg-light text-dark">
+			<header class="site-header py-4">
+				<div class="container d-flex align-items-center justify-content-between">
+					<h1 class="h5 mb-0">Opportunity Detail</h1>
+				</div>
+			</header>
+		<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+			<div class="container">
+							<a class="navbar-brand d-flex align-items-center" href="index.html">
+								<img src="assets/images/help-africa-now.png" alt="Help Africa Now" class="brand-logo brand-logo--large" onerror="this.onerror=null;this.src='assets/images/logo-ra.svg'" />
+								<span class="brand-name ms-2">Riseup Africa</span>
+							</a>
+					<form class="d-none d-md-flex ms-3 nav-search">
+						<div class="input-group">
+							<input class="form-control form-control-sm" placeholder="Search youth, opportunities..." aria-label="Search">
+							<button class="btn btn-outline-secondary btn-sm" type="button"><i class="bi bi-search"></i></button>
+						</div>
+					</form>
+					<div class="collapse navbar-collapse" id="mainNav">
+						<ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+							<li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+							<li class="nav-item"><a class="nav-link" href="youth_dashboard.html">Youth Dashboard</a></li>
+							<li class="nav-item"><a class="nav-link" href="profile_upload.html">Profile Upload</a></li>
+							<li class="nav-item"><a class="nav-link" href="donor_dashboard.html">Donor Dashboard</a></li>
+						</ul>
+					</div>
+					<div class="ms-auto d-flex align-items-center gap-2 d-none d-lg-flex">
+						<button id="themeToggle" class="btn btn-sm btn-light" title="Toggle theme"><i class="bi bi-moon-fill"></i></button>
+						<a id="loginBtn" class="btn btn-sm btn-outline-primary login-extended" href="#">Log in</a>
+					</div>
+			</div>
+		</nav>
+
+		<main class="container my-4">
+			<div class="card shadow-sm mb-3" data-aos="fade-up">
+				<div class="card-body">
+					<h4 id="oppTitle" class="card-title">Loading…</h4>
+					<p id="oppMeta" class="mb-1"></p>
+					<p id="oppDesc" class="mb-3"></p>
+					<a id="applyBtn" class="btn btn-primary" href="youth_dashboard.html">Apply</a>
+				</div>
+			</div>
+
+			<div class="card shadow-sm" data-aos="fade-up" data-aos-delay="120">
+				<div class="card-body">
+					<h5 class="card-title">Applications</h5>
+					<div class="table-responsive">
+						<table class="table table-hover mb-0">
+							<thead><tr><th>Youth</th><th>Category</th><th>Verification</th><th>Status</th></tr></thead>
+							<tbody id="applicationsBody">
+								<tr><td>No applications yet</td><td></td><td></td><td></td></tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</main>
+
+	<footer class="text-center text-muted py-3"><div class="container small">Opportunity Detail · Riseup Africa</div></footer>
+
+			<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+				<!-- Login modal -->
+				<div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
+					<div class="modal-dialog modal-dialog-centered">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title">Sign in to Riseup Africa</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+							</div>
+							<div class="modal-body">
+								<form id="loginForm">
+									<div class="mb-3"><label class="form-label">Email</label><input type="email" class="form-control" required></div>
+									<div class="mb-3"><label class="form-label">Password</label><input type="password" class="form-control" required></div>
+									<div class="d-flex justify-content-between align-items-center">
+										<a href="#" class="small">Forgot?</a>
+										<button type="submit" class="btn btn-primary">Sign in</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+				<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+				<script src="assets/js/app.js"></script>
+				<script>
+				// populate opportunity and applications from API using ?id= query param
+				(function(){
+					function qs(name){
+						var url = new URL(window.location.href);
+						return url.searchParams.get(name);
+					}
+					var id = qs('id');
+					if(!id) return;
+
+					var applyBtn = document.getElementById('applyBtn');
+					var applicationsBody = document.getElementById('applicationsBody');
+					var loginModalEl = document.getElementById('loginModal');
+					var loginModal = (typeof bootstrap !== 'undefined' && loginModalEl) ? new bootstrap.Modal(loginModalEl) : null;
+
+					function showMessage(text){
+						// simple inline feedback by replacing apply button text briefly
+						var prev = applyBtn.textContent;
+						applyBtn.textContent = text;
+						setTimeout(()=> applyBtn.textContent = prev, 2000);
+					}
+
+					async function fetchOpportunity(){
+						try{
+							var res = await fetch('/api/opportunities/'+encodeURIComponent(id));
+							if(!res.ok) throw new Error('not found');
+							var data = await res.json();
+							document.getElementById('oppTitle').textContent = data.title || 'Opportunity';
+							document.getElementById('oppMeta').textContent = (data.location? 'Location: '+data.location : '');
+							document.getElementById('oppDesc').textContent = data.description || '';
+							// show owner if present
+							if(data.owner && data.owner.name){
+								document.getElementById('oppMeta').textContent += (data.location? ' · ' : '') + 'Posted by: ' + data.owner.name;
+							}
+							// if the donor provided an attachment, make the Apply button open it instead of creating an application
+							if(data.attachment && data.attachment.url){
+								var url = data.attachment.url;
+								applyBtn.textContent = 'Open attachment / Apply';
+								applyBtn.classList.remove('btn-primary');
+								applyBtn.classList.add('btn-outline-primary');
+								// remove existing click listeners by cloning the node
+								var newBtn = applyBtn.cloneNode(true);
+								newBtn.addEventListener('click', function(ev){ ev.preventDefault(); window.open(url, '_blank'); });
+								applyBtn.parentNode.replaceChild(newBtn, applyBtn);
+								applyBtn = newBtn;
+							} else {
+								// ensure apply button behaves as internal application
+								applyBtn.textContent = 'Apply';
+								applyBtn.classList.remove('btn-outline-primary');
+								applyBtn.classList.add('btn-primary');
+								// rewire to internal apply
+								try{ applyBtn.removeEventListener && applyBtn.removeEventListener('click', tryApply); }catch(e){}
+								applyBtn.addEventListener('click', function(ev){ ev.preventDefault(); tryApply(); });
+							}
+						}catch(e){ console.error(e); document.getElementById('oppTitle').textContent = 'Opportunity not found'; }
+					}
+
+					async function fetchApplications(){
+						try{
+							var res = await fetch('/api/opportunities/'+encodeURIComponent(id)+'/applications');
+							if(!res.ok) throw new Error('could not load applications');
+							var list = await res.json();
+							renderApplications(list || []);
+						}catch(e){ console.error(e); applicationsBody.innerHTML = '<tr><td colspan="4">Could not load applications</td></tr>'; }
+					}
+
+					function renderApplications(list){
+						if(!list || list.length === 0){
+							applicationsBody.innerHTML = '<tr><td>No applications yet</td><td></td><td></td><td></td></tr>';
+							return;
+						}
+						applicationsBody.innerHTML = '';
+						list.forEach(app => {
+							var tr = document.createElement('tr');
+							var youth = app.youth || app.applicant || app.user || {};
+							var name = youth.name || youth.full_name || (youth.email? youth.email.split('@')[0] : 'Unknown');
+							var category = (youth.category) ? youth.category : (app.category || '—');
+							var verified = (youth.verified) ? '<span class="badge bg-success">Verified</span>' : '<span class="text-muted">Unverified</span>';
+							var status = app.status || 'pending';
+							tr.innerHTML = '<td>'+(name)+'</td><td>'+category+'</td><td>'+verified+'</td><td>'+status+'</td>';
+							applicationsBody.appendChild(tr);
+						});
+					}
+
+					async function tryApply(){
+						try{
+							applyBtn.setAttribute('disabled','disabled');
+							showMessage('Applying…');
+							var res = await fetch('/api/apply', {
+								method: 'POST',
+								headers: {'Content-Type':'application/json'},
+								credentials: 'same-origin',
+								body: JSON.stringify({opportunity_id: Number(id)})
+							});
+							if(res.status === 401){
+								// not logged in
+								if(loginModal) loginModal.show();
+								return;
+							}
+							if(!res.ok){
+								var text = await res.text();
+								throw new Error(text || 'apply failed');
+							}
+							var payload = await res.json();
+							showMessage('Applied');
+							// refresh applications list
+							await fetchApplications();
+						}catch(e){
+							console.error(e);
+							showMessage('Error');
+						}finally{ applyBtn.removeAttribute('disabled'); }
+					}
+
+					// wire apply button
+					applyBtn.addEventListener('click', function(ev){ ev.preventDefault(); tryApply(); });
+
+					// when login completes elsewhere the app may auto-submit; refresh applications on focus
+					window.addEventListener('focus', function(){ fetchApplications(); fetchOpportunity(); });
+
+					// initial load
+					fetchOpportunity();
+					fetchApplications();
+				})();
+				</script>
+	</body>
+</html>
