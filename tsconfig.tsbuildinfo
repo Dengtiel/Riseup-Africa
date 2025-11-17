@@ -1,0 +1,1 @@
+{"root":["./apps/web/next-env.d.ts","./apps/web/app/layout.tsx","./apps/web/app/page.tsx","./apps/web/components/providers.tsx","./packages/ui/src/components/button.tsx","./packages/ui/src/lib/utils.ts"],"errors":true,"version":"5.7.3"}

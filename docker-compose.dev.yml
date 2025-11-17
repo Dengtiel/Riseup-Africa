@@ -1,0 +1,85 @@
+version: '3.8'
+
+# Development docker-compose with hot reload
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: riseup-postgres-dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-riseup}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-riseup_password}
+      POSTGRES_DB: ${POSTGRES_DB:-riseup_africa}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-riseup}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - riseup-network-dev
+    restart: unless-stopped
+
+  # API Service (Development with hot reload)
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.dev
+    container_name: riseup-api-dev
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-riseup}:${POSTGRES_PASSWORD:-riseup_password}@postgres:5432/${POSTGRES_DB:-riseup_africa}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key}
+    ports:
+      - "${API_PORT:-4000}:4000"
+    volumes:
+      - ./apps/api:/app/apps/api
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/api/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - riseup-network-dev
+    restart: unless-stopped
+    command: pnpm dev
+
+  # Web Application (Development with hot reload)
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.dev
+    container_name: riseup-web-dev
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - ./apps/web:/app/apps/web
+      - ./packages:/app/packages
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/apps/web/.next
+    depends_on:
+      - api
+    networks:
+      - riseup-network-dev
+    restart: unless-stopped
+    command: pnpm dev
+
+volumes:
+  postgres_data_dev:
+    driver: local
+
+networks:
+  riseup-network-dev:
+    driver: bridge
+
