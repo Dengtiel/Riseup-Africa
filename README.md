@@ -368,7 +368,7 @@ Test credentials (from seed data):
 
 ## 📧 Contact
 
-info@lajiktech.com
+d.akol@alustudent.com
 
 ---
 
